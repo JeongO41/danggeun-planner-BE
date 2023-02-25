@@ -3,6 +3,7 @@ package com.finalteam4.danggeunplanner.security.exception;
 import com.finalteam4.danggeunplanner.common.exception.ErrorCode;
 import io.jsonwebtoken.io.IOException;
 import lombok.extern.slf4j.Slf4j;
+import net.minidev.json.JSONObject;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
@@ -12,7 +13,7 @@ import javax.servlet.http.HttpServletResponse;
 
 @Slf4j
 @Component
-public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint {
+public class CustomAuthenticationEntryPoint extends Throwable implements AuthenticationEntryPoint {
 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, java.io.IOException {
@@ -21,6 +22,10 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
 
         if(exception == null) {
             errorCode = ErrorCode.NOT_AUTHORIZED_MEMBER;
+        }
+        //중복로그인으로 Access Token이 블랙리스트에 등록된 경우
+        else if(exception.equals(ErrorCode.ACCESSTOKEN_IN_BLACKLIST.getCode())){
+            errorCode = ErrorCode.ACCESSTOKEN_IN_BLACKLIST;
         }
         //Access : 토큰 만료된 경우
         else if(exception.equals(ErrorCode.EXPIRATION_ACCESSTOKEN.getCode())) {
@@ -63,10 +68,11 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
         response.setContentType("application/json;charset=UTF-8");
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 
-        response.getWriter().println("{ \"message\" : \"" + errorCode.getMessage()
-                + "\", \"code\" : \"" +  errorCode.getCode()
-                + "\", \"status\" : " + errorCode.getHttpStatus()
-                + ", \"errors\" : [ ] }");
+        JSONObject responseJson = new JSONObject();
+        responseJson.put("message", errorCode.getMessage());
+        responseJson.put("code", errorCode.getCode());
+
+        response.getWriter().print(responseJson);
     }
 }
 

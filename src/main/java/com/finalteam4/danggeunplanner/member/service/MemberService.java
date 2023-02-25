@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 
+import static com.finalteam4.danggeunplanner.common.exception.ErrorCode.EXPIRATION_REFRESHTOKEN;
 import static com.finalteam4.danggeunplanner.common.exception.ErrorCode.NOT_FOUND_MEMBER;
 import static com.finalteam4.danggeunplanner.common.exception.ErrorCode.NOT_MATCH_REFRESHTOKEN;
 import static com.finalteam4.danggeunplanner.security.jwt.JwtUtil.AUTHORIZATION_ACCESS;
@@ -79,7 +80,16 @@ public class MemberService {
         String refreshToken = jwtUtil.createRefreshToken();
         response.addHeader(AUTHORIZATION_ACCESS, accessToken);
         response.addHeader(AUTHORIZATION_REFRESH, refreshToken);
-        redisService.setValues(email, refreshToken, Duration.ofDays(60));
+
+        //동일 계정으로 발급된 AT가 있을 경우 = 중복 로그인인 경우
+        //기존 발급된 AT를 레디스 블랙리스트 등록
+        String emailAT = email+"AT";
+        String issuedAccessToken = redisService.getValues(emailAT);
+        if(issuedAccessToken!=null){
+           redisService.setValues(issuedAccessToken,"useless", Duration.ofMillis(jwtUtil.getExpiration(issuedAccessToken)));
+        }
+        redisService.setValues(email, refreshToken, Duration.ofDays(14));
+        redisService.setValues(emailAT, accessToken, Duration.ofHours(5));
     }
 
     @Transactional
@@ -89,7 +99,10 @@ public class MemberService {
         Claims info = jwtUtil.getUserInfoFromToken(token, true); //ATK에서 body가지고 옴
         String email = info.getSubject(); //가지고온 body에서 subject 빼오기 = email
         String refreshTokenFromRedis = redisService.getValues(email);
-        if(refreshTokenFromRequest.equals(refreshTokenFromRedis)){
+        if(refreshTokenFromRedis==null){
+            throw new DanggeunPlannerException(EXPIRATION_REFRESHTOKEN);
+        }
+        else if(refreshTokenFromRequest.equals(refreshTokenFromRedis)){
             jwtUtil.validateRefreshToken(request, email);
             issueTokens(response, email);
         } else {
@@ -98,8 +111,11 @@ public class MemberService {
     }
 
     @Transactional
-    public void logout(Member member){
-        redisService.delValues(member.getEmail());
+    public void logout(HttpServletRequest request){
+        String token = jwtUtil.resolveToken(request, AUTHORIZATION_ACCESS); //요청헤더에서 온 ATK(bearer 제외)
+        Claims info = jwtUtil.getUserInfoFromToken(token, true); //ATK에서 body가지고 옴
+        String email = info.getSubject(); //가지고온 body에서 subject 빼오기 = email
+        redisService.delValues(email);
     }
 
     @Transactional

@@ -35,7 +35,7 @@ public class JwtUtil {
     public static final String AUTHORIZATION_ACCESS = "AccessToken";
     public static final String AUTHORIZATION_REFRESH = "RefreshToken";
     private static final String BEARER_PREFIX = "Bearer ";
-    private static final long TOKEN_TIME = 2 * 60 * 60 * 1000L;
+    private static final long TOKEN_TIME = 5 * 60 * 60 * 1000L;
     @Value("${jwt.secret.key.access}")
     private String accessTokenSecretKey;
     @Value("${jwt.secret.key.refresh}")
@@ -76,7 +76,7 @@ public class JwtUtil {
         Date date = new Date();
         return BEARER_PREFIX +
                 Jwts.builder()
-                        .setExpiration(new Date(System.currentTimeMillis() + 60 * 24 * 60 * 60 * 1000L))
+                        .setExpiration(new Date(System.currentTimeMillis() + 14 * 24 * 60 * 60 * 1000L))
                         .setIssuedAt(date)
                         .signWith(refreshTokenKey, signatureAlgorithm)
                         .compact();
@@ -132,6 +132,12 @@ public class JwtUtil {
         } else {
             return Jwts.parserBuilder().setSigningKey(accessTokenKey).build().parseClaimsJws(token).getBody();
         }
+    }
+    //AccessToken 블랙리스트 등록시 남은 만료시간 구하기
+    public Long getExpiration(String accessToken){
+        Date expirationDate = Jwts.parserBuilder().setSigningKey(accessTokenKey).build().parseClaimsJws(accessToken).getBody().getExpiration();
+        Long now = new Date().getTime();
+        return (expirationDate.getTime() - now);
     }
 
     // 인증 객체 생성

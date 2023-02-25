@@ -1,5 +1,6 @@
 package com.finalteam4.danggeunplanner.security.config;
 
+import com.finalteam4.danggeunplanner.redis.service.RedisService;
 import com.finalteam4.danggeunplanner.security.exception.CustomAuthenticationEntryPoint;
 import com.finalteam4.danggeunplanner.security.jwt.JwtAuthFilter;
 import com.finalteam4.danggeunplanner.security.jwt.JwtUtil;
@@ -23,6 +24,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @RequiredArgsConstructor
 public class WebSecurityConfig {
     private final JwtUtil jwtUtil;
+    private final RedisService redisService;
 
     @Bean
     public PasswordEncoder passwordEncoder(){
@@ -49,7 +51,7 @@ public class WebSecurityConfig {
                 anyRequest().authenticated().
 
                 and().
-                addFilterBefore(new JwtAuthFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class).
+                addFilterBefore(new JwtAuthFilter(jwtUtil, redisService), UsernamePasswordAuthenticationFilter.class).
                 exceptionHandling().
                 authenticationEntryPoint(new CustomAuthenticationEntryPoint());
 

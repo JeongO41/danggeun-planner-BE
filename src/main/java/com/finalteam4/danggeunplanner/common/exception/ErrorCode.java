@@ -15,9 +15,9 @@ public enum ErrorCode {
     DUPLICATED_NICKNAME(HttpStatus.BAD_REQUEST, "MEMBER_002", "이미 사용 중인 닉네임입니다."),
     NOT_VALID_PASSWORD(HttpStatus.BAD_REQUEST, "MEMBER_003", "비밀번호를 다시 확인해주세요."),
     NOT_FOUND_MEMBER(HttpStatus.NOT_FOUND, "MEMBER_004", "찾을 수 없는 회원입니다."),
-
     NOT_MATCH_REFRESHTOKEN(HttpStatus.NOT_ACCEPTABLE, "MEMBER_005", "Refresh Token이 일치하지 않습니다."),
 
+    ACCESSTOKEN_IN_BLACKLIST(HttpStatus.UNAUTHORIZED, "JWT_000", "블랙리스트에 등록된 Access Token입니다."),
     ACCESSTOKEN_NOT_FOUND(HttpStatus.NOT_FOUND, "JWT_001", "Access Token이 존재하지 않습니다."),
     INVALID_ACCESSTOKEN(HttpStatus.BAD_REQUEST, "JWT_002", "Access Token이 유효하지 않습니다."),
     EXPIRATION_ACCESSTOKEN(HttpStatus.UNAUTHORIZED, "JWT_003", "Access Token이 만료되었습니다"),

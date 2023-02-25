@@ -1,5 +1,8 @@
 package com.finalteam4.danggeunplanner.security.jwt;
 
+import com.finalteam4.danggeunplanner.common.exception.ErrorCode;
+import com.finalteam4.danggeunplanner.redis.service.RedisService;
+import com.finalteam4.danggeunplanner.security.exception.CustomAuthenticationEntryPoint;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +25,7 @@ import static com.finalteam4.danggeunplanner.security.jwt.JwtUtil.AUTHORIZATION_
 
 public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
+    private final RedisService redisService;
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
         throws ServletException, IOException {
 
@@ -30,6 +34,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if(uri.contains("api/auth/signup") || uri.contains("api/auth/login") || uri.contains("api/auth/token") || uri.contains("api/auth/kakao") || uri.contains("login/kakao")){
             filterChain.doFilter(request, response);
             return;
+        }
+
+        //AccessToken  블랙리스트에 있는지 확인
+        String accessToken = request.getHeader(AUTHORIZATION_ACCESS);
+        String checkTokenInBlackList = redisService.getValues(accessToken);
+        if(checkTokenInBlackList != null & checkTokenInBlackList.equals("useless")){
+            try {
+                throw new CustomAuthenticationEntryPoint();
+            } catch (CustomAuthenticationEntryPoint e) {
+                e.printStackTrace();
+                request.setAttribute("exception", ErrorCode.ACCESSTOKEN_IN_BLACKLIST.getCode());
+            }
         }
 
         String token = jwtUtil.resolveToken(request, AUTHORIZATION_ACCESS);
